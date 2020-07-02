@@ -81,16 +81,16 @@ flickr_username:
 #for comments ( we got Disqus and Hyvor Commenting, uncomment the one you want to use )
 
 # disqus_shortname: sujay-kundu
-hyvor_talk_website_id: 476
+hyvor_talk_website_id: #476
 
 # wakatime username (coding activity)
-wakatime_username: sujaykundu777
+wakatime_username: souzaeduardoac
 
 # mailchimp embedded form url (newsletter):
 mailchimp_form_url: https://sujaykundu.us10.list-manage.com/subscribe/post?u=50bab1c85eae24ecfb0f68361&amp;id=3a2dd721d0
 
 # formspree (contact form)
-formspree_email: johndoe@gmail.com
+formspree_email: souzaeduardoac@gmail.com
 
 # syntax highlighter
 markdown: kramdown
@@ -100,7 +100,7 @@ permalink: pretty
 # Choose what to show ( can be true or false)
 show_author_work_experiences: true
 show_author_education_details: true
-show_author_project_details: true
+show_author_project_details: false
 
 # algolia search
 algolia:
