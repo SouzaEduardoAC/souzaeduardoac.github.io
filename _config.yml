@@ -13,8 +13,8 @@ urls:
       url: /blog
     - text: Contact Me
       url : /contact
-    - text: Styleguide
-      url: /styleguide
+#    - text: Styleguide
+#      url: /styleguide
 
 # Edit these details
 
