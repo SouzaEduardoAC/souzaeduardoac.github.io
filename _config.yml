@@ -136,12 +136,12 @@ collections:
  - products
 
 # Gallery
-defaults:
-  -
-    scope:
-      path: "gallery"
-    values:
-      permalink: /:path/:basename:output_ext
+#defaults:
+#  -
+#    scope:
+#      path: "gallery"
+#    values:
+#      permalink: /:path/:basename:output_ext
 
 # Build settings
 plugins:
