@@ -5,7 +5,7 @@ author: Eduardo Souza
 date: '2020-07-23 18:27:23 -0300'
 category:
         - security
-summary: How does it work and how can we prevent it
+summary: Try not to break it
 thumbnail: /assets/img/posts/race_conditions.jpg
 ---
 
