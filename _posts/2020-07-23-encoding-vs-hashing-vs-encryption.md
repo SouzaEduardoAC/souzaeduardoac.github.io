@@ -13,13 +13,13 @@ thumbnail: /assets/img/posts/encryption.jpg
 >  * Can also be used to compress data in transit or storage
 >  * Should never be used to keep data confidential
 
-**Hashing** is a one-way transformation of arbirary data into a value of the fixed lenght.
+**Hashing** is a one-way transformation of arbitrary data into a value of the fixed lenght.
 >  * Cryptographic
 >  * Noncryptographic -> should never be used for security related
 
 **SHA: Chryptographic hashing algorithms** should have the following laws:
  
->  * Preimage resistance, it's impossible to derive the original message
+>  * Preimage resistance -> it's impossible to derive the original message
 >  * Unpredictability -> the output should be impredictable
 
 Also having quick computation time, hashing is used to ensure the integrity of data with _digital signatures_ and _TLS certificates_.
