@@ -2,7 +2,7 @@
 layout: post
 title: SQL Injection
 author: Eduardo Souza
-date: '2020-07-23 20:21:23 -0300'
+date: '2020-07-23 17:21:23 -0300'
 category:
         - security
 summary: How does it work and how can we prevent it

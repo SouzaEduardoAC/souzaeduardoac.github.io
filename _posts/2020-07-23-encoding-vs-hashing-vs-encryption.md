@@ -2,7 +2,7 @@
 layout: post
 title: Encoding vs Hashing vs Encryption
 author: Eduardo Souza
-date: '2020-07-23 20:21:23 -0300'
+date: '2020-07-23 14:21:23 -0300'
 category:
         - security
 summary: In this post, we will see the difference in each technique
