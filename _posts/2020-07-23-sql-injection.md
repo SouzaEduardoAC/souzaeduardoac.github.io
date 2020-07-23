@@ -5,7 +5,7 @@ author: Eduardo Souza
 date: '2020-07-23 20:21:23 -0300'
 category:
         - security
-summary: In this post, we will see the difference in each technique
+summary: How does it work and how can we prevent it
 thumbnail: /assets/img/posts/sql_injection.jpg
 ---
 
