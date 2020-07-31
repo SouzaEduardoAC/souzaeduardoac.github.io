@@ -20,6 +20,6 @@ There are different ways to prevent Race Conditions, and in all of them, the mai
 Try to avoid implementing your own lock because it's not a trivial thing to do. Attempting to fight race conditions, you may end up with a deadlock, i.e. with a condition when two threads are waiting infinitely for each other to release the lock.
 
 Use proven libraries and make sure not to introduce deadlocks. 
-Monitor.Enter() acquires a lock on the _exchangeLock object. Note that choosing a lock object is a tradeoff between performance and security. To keep both security and performance on a sufficient level, one should lock only the critical parts of the code.
+`Monitor.Enter()` acquires a lock on the `_exchangeLock` object. Note that choosing a lock object is a tradeoff between performance and security. To keep both security and performance on a sufficient level, one should lock only the critical parts of the code.
 
 You can use try and finally construction to make sure that the lock is released regardless of the result of the code execution.
