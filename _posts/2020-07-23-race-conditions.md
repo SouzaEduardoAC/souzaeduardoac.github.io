@@ -1,13 +1,14 @@
 ---
 layout: post
-title: Race Conditions
-author: Eduardo Souza
+title: "Race Conditions"
+summary: "Try not to break it"
+author: souzaeduardoac
 date: '2020-07-23 18:27:23 -0300'
-category:
-        - security
-summary: Try not to break it
+category: security
 thumbnail: /assets/img/posts/race_conditions.jpg
+permalink: /blog/race-conditions/
 ---
+
 
 **Race Condition** is a logical weakness that is extremely hard to detect. The bigger is the piece of code executed by multiple threads, the harder it is to determine where exactly something went wrong. It consists in two or more operations requesting the same resource simultaneously but the operations must be done in a given sequence to be done correctly.
 

@@ -1,12 +1,12 @@
 ---
 layout: post
-title: Load Balancer with High Availability
-author: Eduardo Souza
-date: '2020-11-11 20:21:23 -0300'
-category:
-        - high-availability
-summary: Load balacing with high availability!
+title: "Load Balancer with High Availability"
+summary: "Load balacing with high availability!"
+author: souzaeduardoac
+date: '2020-11-9 20:21:23 -0300'
+category: high-availability
 thumbnail: /assets/img/posts/nginx-keepalived.png
+permalink: /blog/load-balancer-with-high-availability/
 ---
 
 Load balancing consists in receiving a request and redirect it to N places, so, how can we do it? 
@@ -19,37 +19,43 @@ I'll be using two applications for it: [**nginx**](https://www.nginx.com/) for l
 
 Before we jump into configurations, we need to install those resources!
 
-*This part is specific for centos 7, both resources (keepalived and nginx) are available to all linux distributions.*
+*`This part is specific for centos 7, both resources (keepalived and nginx) are available to all linux distributions.`*
 
 ## NGINGX
 
 ### Add nginx repository
-
-> sudo yum install epel-release
+{% highlight shellscript %}
+sudo yum install epel-release
+{% endhighlight %}
 
 ### Install nginx
-
-> sudo yum install nginx
+{% highlight shellscript %}
+sudo yum install nginx
+{% endhighlight %}
 
 ### Start nginx
+{% highlight shellscript %}
+sudo systemctl start nginx
+{% endhighlight %}
 
-> sudo systemctl start nginx
-
-If everything went well, we will be able to see a default page for testing purpose at: *http://server_ip*
+If everything went well, we will be able to see a default page for testing purpose at: *`http://server_ip`*
 
 ### Enable nginx to start when system boots
-
-> sudo systemctl enable nginx
+{% highlight shellscript %}
+sudo systemctl enable nginx
+{% endhighlight %}
 
 ## KEEPALIVED
 
 ### Install keepalived
-
-> sudo yum install keepalived
+{% highlight shellscript %}
+sudo yum install keepalived
+{% endhighlight %}
 
 ### Enable keepalived to start when system boots
-
-> sudo systemctl status keepalived
+{% highlight shellscript %}
+sudo systemctl status keepalived
+{% endhighlight %}
 
 ## Now let the fun begin, configuration time!
 
@@ -82,9 +88,10 @@ We are telling nginx to get every request at port 80 and redirect it to that cou
 
 Once it is configured, we need to restart nginx service to make it effective.
 
-> sudo systemctl stop nginx
-
-> sudo systemctl start nginx
+{% highlight shellscript %}
+sudo systemctl stop nginx
+sudo systemctl start nginx
+{% endhighlight %}
 
 Now that we have our load balancer up and running, what happens if it stops working?
 Well, for that we have another server running nginx with the configuration. But how this second server knows when to take the lead and start handling those requests? ***The answer lies with keepalived***

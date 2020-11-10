@@ -1,12 +1,12 @@
 ---
 layout: post
-title: SQL Injection
-author: Eduardo Souza
+title: "SQL Injection"
+summary: "How does it work and how can we prevent it"
+author: souzaeduardoac
 date: '2020-07-23 17:21:23 -0300'
-category:
-        - security
-summary: How does it work and how can we prevent it
+category: security
 thumbnail: /assets/img/posts/sql_injection.jpg
+permalink: /blog/sql-injection/
 ---
 
 **SQL Injection** is a code injection technique, used to attack applications, in which malicious SQL statements are inserted in client (web/mobile) fields to be executed by the database and retrieve, update or even wipe data.

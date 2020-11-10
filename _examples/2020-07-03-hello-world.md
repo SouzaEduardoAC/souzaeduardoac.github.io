@@ -1,13 +1,15 @@
 ---
 layout: post
-title: Jekyll Styleguide
-author: Eduardo Souza
+title: "Jekyll Styleguide"
+summary: "This is the jekyll styleguide"
+author: souzaeduardoac
 date: '2020-07-03 14:35:23 -0300'
-category:
-        - jekyll
+category: jekyll
 summary: This is the jekyll styleguide
 thumbnail: /assets/img/styleguide.png
+permalink: /blog/jekyll-styleguide/
 ---
+
 
 <p> Lets try the different text styles  <b> Bold </b> , <strong> Strong </strong>, <em> Emphasis </em>, <i> Italic </i> </p>
 

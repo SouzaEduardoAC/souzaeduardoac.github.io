@@ -1,15 +1,15 @@
 ---
 layout: post
-title: Command Injection
-author: Eduardo Souza
+title: "Command Injection"
+summary: "How does it work and how can we prevent it"
+author: souzaeduardoac
 date: '2020-07-23 17:58:23 -0300'
-category:
-        - security
-summary: How does it work and how can we prevent it
+category: security
 thumbnail: /assets/img/posts/command-injection.jpg
+permalink: /blog/command-injection/
 ---
 
-By using a tool like Netcat utility to read from a network connection using TCP and to output the results of the exploited Command Injection vulnerability to a consolean attacker can checks his CLI window and sees there the content of the _C:\Windows\windows.ini_ file from the server.
+By using a tool like Netcat utility to read from a network connection using TCP and to output the results of the exploited Command Injection vulnerability to a consolean attacker can checks his CLI window and sees there the content of the _`C:\Windows\windows.ini`_ file from the server.
 
 With this vulnerability, **almost any arbitrary operating system command can be executed** on the server.
 The most effective way to prevent Command Injection vulnerabilities is to avoid calling OS commands from the application code.

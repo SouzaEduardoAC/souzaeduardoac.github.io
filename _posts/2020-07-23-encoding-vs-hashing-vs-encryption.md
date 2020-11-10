@@ -1,12 +1,12 @@
 ---
 layout: post
-title: Encoding vs Hashing vs Encryption
-author: Eduardo Souza
+title: "Encoding vs Hashing vs Encryption"
+summary: "In this post, we will see the difference in each technique"
+author: souzaeduardoac
 date: '2020-07-23 14:21:23 -0300'
-category:
-        - security
-summary: In this post, we will see the difference in each technique
+category: security
 thumbnail: /assets/img/posts/encryption.jpg
+permalink: /blog/encoding-vs-hashing-vs-encryption/
 ---
 
 **Encoding** is a technique to transform data from one form to another that suits best the system that processes this data.
@@ -22,9 +22,9 @@ thumbnail: /assets/img/posts/encryption.jpg
 >  * Preimage resistance -> it's impossible to derive the original message
 >  * Unpredictability -> the output should be impredictable
 
-Also having quick computation time, hashing is used to ensure the integrity of data with _digital signatures_ and _TLS certificates_.
+Also having quick computation time, hashing is used to ensure the integrity of data with _`digital signatures`_ and _`TLS certificates`_.
 
-**Encryption** is the transformation of data into a format that doesn't allow to derive the initial meaning from it even if an attacker gets access to it and should be used if data confidentiality is the goal, **it needs to be decrypted using the _cryptographic key_**.
+**Encryption** is the transformation of data into a format that doesn't allow to derive the initial meaning from it even if an attacker gets access to it and should be used if data confidentiality is the goal, **it needs to be decrypted using the _`cryptographic key`_**.
 There are two types of algorithms to be used: symmetric and asymmetric, symmetric have better performance than asymmetric.
 > * Symmetric use the same key for encrypt and decrypt
 >   * widely used for encryption of arbitrary data
