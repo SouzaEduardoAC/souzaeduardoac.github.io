@@ -2,7 +2,7 @@
 name: Eduardo Souza
 username: souzaeduardoac
 site: https://souzaeduardoac.github.io
-avatar: souzaeduardoac.png
+avatar: souzaeduardoac.jpg
 bio: "Senior Developer, based in Blumenau, Brazil"
 email: souzaeduardoac@gmail.com
 social:

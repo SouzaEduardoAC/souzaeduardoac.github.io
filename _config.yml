@@ -28,16 +28,16 @@ urls:
 
 author_logo: profile.png
 author: Eduardo Souza
-author_bio: Hi, my name is Eduardo Augusto Coleta Souza. I'm 27 years old and a senior software developer currently working for HBSIS | Ambev | Anheuser-Busch InBev.
+author_bio: Hi, my name is Eduardo Augusto Coleta Souza. I'm 27 years old and a senior software developer currently working for Ambev Tech.
 author_email: "souzaeduardoac@gmail.com"
 author_location: Brazil
 author_website_url: "https://souzaeduardoac.github.io"
 typewrite-text: this is a github hosted site based on devlopr-jekyll!
 
 author_work_experiences:
-            - company_name: HBSIS | Ambev
+            - company_name: Ambev Tech
               company_logo: hbsis.png
-              company_url: https://hbsis.com.br
+              company_url: https://ambevtech.com.br/
               designation: Senior Software Developer
               description: Working on Warehouse Management System as a Developer (11/18 - 10/20) and Senior Developer (10/20 - now)
               visibility: true
