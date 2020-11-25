@@ -1,0 +1,1415 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Eduardo Souza</title>
+    <description>This is a github hosted site based on devlopr-jekyll</description>
+    <link>/</link>
+    <atom:link href="/feed.xml" rel="self" type="application/rss+xml"/>
+    <pubDate>Wed, 25 Nov 2020 19:20:20 +0000</pubDate>
+    <lastBuildDate>Wed, 25 Nov 2020 19:20:20 +0000</lastBuildDate>
+    <generator>Jekyll v4.1.1</generator>
+
+    
+      <item>
+        <title>Load Balancer with High Availability</title>
+        <description>&lt;p&gt;Load balancing consists in receiving a request and redirect it to N places, so, how can we do it?&lt;/p&gt;
+
+&lt;p&gt;If we add another layer to handle this job, what happens if that one stop working? How can we mitigate it?&lt;/p&gt;
+
+&lt;p&gt;I’ll be using two applications for it: &lt;a href=&quot;https://www.nginx.com/&quot;&gt;&lt;strong&gt;nginx&lt;/strong&gt;&lt;/a&gt; for load balancer and &lt;a href=&quot;https://www.keepalived.org/&quot;&gt;&lt;strong&gt;keepalived&lt;/strong&gt;&lt;/a&gt; for high availability.&lt;/p&gt;
+
+&lt;h2 id=&quot;first-things-first-installation-time&quot;&gt;First things first, installation time!&lt;/h2&gt;
+
+&lt;p&gt;Before we jump into configurations, we need to install those resources!&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;This part is specific for centos 7, both resources (keepalived and nginx) are available to all linux distributions.&lt;/code&gt;&lt;/em&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;ngingx&quot;&gt;NGINGX&lt;/h2&gt;
+
+&lt;h3 id=&quot;add-nginx-repository&quot;&gt;Add nginx repository&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo yum install epel-release&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;install-nginx&quot;&gt;Install nginx&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo yum install nginx&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;start-nginx&quot;&gt;Start nginx&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo systemctl start nginx&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;If everything went well, we will be able to see a default page for testing purpose at: &lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://server_ip&lt;/code&gt;&lt;/em&gt;&lt;/p&gt;
+
+&lt;h3 id=&quot;enable-nginx-to-start-when-system-boots&quot;&gt;Enable nginx to start when system boots&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo systemctl enable nginx&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;keepalived&quot;&gt;KEEPALIVED&lt;/h2&gt;
+
+&lt;h3 id=&quot;install-keepalived&quot;&gt;Install keepalived&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo yum install keepalived&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;enable-keepalived-to-start-when-system-boots&quot;&gt;Enable keepalived to start when system boots&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo systemctl status keepalived&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;now-let-the-fun-begin-configuration-time&quot;&gt;Now let the fun begin, configuration time!&lt;/h2&gt;
+
+&lt;p&gt;Nginx will be responsible for receiving a request and send it to another server, as we are talking about load balancing, it will redirect to at least 2 servers.&lt;/p&gt;
+
+&lt;p&gt;We already had up and running at the previous section, so lets jump to configuration.&lt;/p&gt;
+
+&lt;p&gt;Nginx default location is &lt;strong&gt;/etc/nginx&lt;/strong&gt;. Inside that folder, we want to add our specific configuration file.
+&lt;strong&gt;&lt;em&gt;Add a file at the conf.d folder: /etc/nginx/conf.d/my-conf-file.conf&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;This file will handle how nginx should work.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;upstream application_servers {
+    server my_first_servers_ip
+    server my_second_servers_ip        
+}
+
+server {
+    listen 80;        
+    listen [::]:80;
+    server_name my_domain.com;
+    location / {
+         proxy_pass http://aplication_servers;
+    }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;  &lt;/div&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;The upstream sections, contains our application servers, while the server sections, contains the configuration for the server running the load balancer, itself in this case.&lt;/p&gt;
+
+&lt;p&gt;We are telling nginx to get every request at port 80 and redirect it to that couple of servers specified at the upstream section. Each request will be sending to a diferent server, i.e.: &amp;gt; First request goes to the first server, second request to the second, third request to the first again, logic follows.&lt;/p&gt;
+
+&lt;p&gt;Once it is configured, we need to restart nginx service to make it effective.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo systemctl stop nginx
+sudo systemctl start nginx&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;Now that we have our load balancer up and running, what happens if it stops working?
+Well, for that we have another server running nginx with the configuration. But how this second server knows when to take the lead and start handling those requests? &lt;strong&gt;&lt;em&gt;The answer lies with keepalived&lt;/em&gt;&lt;/strong&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Keepalived&lt;/strong&gt; configuration enables a shared IP address between two servers, our application domain will be bound to a virtual IP address and both servers will be listen to this virtual IP.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#MAIN SERVER
+vrrp_instance VI_1 {
+   state MASTER
+   interface eth0
+   virtual_router_id 51
+   priority 255
+   advert_int 1
+   authentication {
+         auth_type PASS
+         auth_pass 12345
+   }
+   virtual_ipaddress {
+         virtual_ip_address
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;  &lt;/div&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;#BACKUP SERVER
+vrrp_instance VI_1 {
+   state BACKUP
+   interface eth0
+   virtual_router_id 51
+   priority 254
+   advert_int 1
+   authentication {
+         auth_type PASS
+         auth_pass 12345
+   }
+   virtual_ipaddress {
+         virtual_ip_address
+   }
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;  &lt;/div&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;There is a very small detail between both server’s configuration files, that is the priority and the state of each.&lt;/p&gt;
+
+&lt;p&gt;The state MASTER of the first server’s configuration makes the it the main responsible for that virtual ip and the BACKUP makes it keep waiting the main falls to assume.&lt;/p&gt;
+
+&lt;p&gt;The priority here is the line of responsibility of each server, the higher the number, the first it will assume. If we have 3 servers running as load balancers and 2 as backup server, the one with higher priority will assume, and lowest will wait until that one falls too.&lt;/p&gt;
+</description>
+        <pubDate>Mon, 09 Nov 2020 23:21:23 +0000</pubDate>
+        <link>/blog/load-balancer-with-high-availability/</link>
+        <guid isPermaLink="true">/blog/load-balancer-with-high-availability/</guid>
+      </item>
+    
+      <item>
+        <title>Clustering RabbitMQ</title>
+        <description>&lt;p&gt;For this, we will use at least a couple VMs for single point failure mitigation.&lt;/p&gt;
+
+&lt;h3 id=&quot;first-connect-via-ssh&quot;&gt;First, connect via ssh:&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;ssh first-server-username@first-sever-ip&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;In case you don’t know your server’s system distro/version, check with:&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;cat /etc/*release&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;In this example, I will use a Cent OS 7 machine.&lt;/p&gt;
+
+&lt;h3 id=&quot;once-connected-we-need-to-download-and-install-erlang-rabbitmq-gives-us-a-package-ready-of-erlang-for-rabbitmq-we-will-use-that&quot;&gt;Once connected, we need to download and install erlang, rabbitmq gives us a package ready of erlang for rabbitmq, we will use that.&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;wget https://github.com/rabbitmq/erlang-rpm/releases/download/v23.0.2/erlang-23.0.2-1.el7.x86_64.rpm&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo yum localinstall &amp;lt;/path/to/package&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;then-download-install-and-enable-rabbit-mq-server&quot;&gt;Then, download, install and enable rabbit-mq server&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;wget https://github.com/rabbitmq/rabbitmq-server/releases/download/v3.8.5/rabbitmq-server-3.8.5-1.el7.noarch.rpm&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo yum localinstall &amp;lt;/path/to/package&amp;gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;chkconfig rabbitmq-server on&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;i-like-to-use-a-different-disk-to-keep-rabbitmq-data-so-we-are-going-to-look-for-available-disks&quot;&gt;I like to use a different disk to keep RabbitMQ data, so we are going to look for available disks&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;lsblk&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;&lt;em&gt;IF NEED FORMAT/MOUNT&lt;/em&gt;&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;#Format into de desired partition type
+sudo /sbin/mkfs -t ext4 /dev/sdX
+
+#Add a label to it
+sudo /sbin/e2label /dev/sdX /mnesia
+sudo /sbin/tune2fs -l /dev/sdX |grep volume
+
+#Edit /etc/fstab and add the following line:
+LABEL=/mnesia          /mnesia                ext4    defaults        1 2
+ 
+#Create a directory for mount the partition
+sudo mkdir /mnesia
+ 
+#Grant permission to it
+sudo chown &amp;lt;group:user&amp;gt; /mnesia
+
+#Mount the new partition
+sudo mount /dev/sdX /mnesia
+
+#Check if its everyone ok
+df -k&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h2 id=&quot;repeat-everything-for-the-others-machines&quot;&gt;&lt;strong&gt;Repeat everything for the others machines&lt;/strong&gt;&lt;/h2&gt;
+
+&lt;h3 id=&quot;now-we-need-to-reset-one-of-the-node-on-the-cluster-by-running-the-following-commands&quot;&gt;Now we need to reset one of the node on the cluster by running the following commands:&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo /usr/sbin/rabbitmqctl cluster_status
+sudo /usr/sbin/rabbitmqctl status 
+sudo /usr/sbin/rabbitmqctl stop_app 
+sudo /usr/sbin/rabbitmqctl reset&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;then-create-and-move-the-mnesia-folder-using-the-following-commands&quot;&gt;Then create and move the mnesia folder using the following commands:&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo mkdir /mnesia/data
+sudo cp -r /var/lib/rabbitmq/mnesia/* /mnesia/data/
+sudo chown -R rabbitmq:rabbitmq /mnesia/data
+sudo chmod 766 /mnesia/data&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;update-the-rabbitmq-environment-to-set-the-rabbitmq_mnesia_base-to-the-new-folder-that-we-created&quot;&gt;Update the RabbitMQ Environment to set the &lt;strong&gt;RABBITMQ_MNESIA_BASE&lt;/strong&gt; to the new folder that we created:&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;touch /tmp/rabbitmq-env.conf
+cat &amp;lt;&amp;gt; /tmp/rabbitmq-env.conf
+   CONFIG_FILE=/tmp/rabbitmq
+   RABBITMQ_MNESIA_BASE=/opt/mnesia
+End
+
+sudo mv /tmp/rabbitmq-env.conf /etc/rabbitmq/&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;reboot-the-system-and-now-join-this-node-to-the-existing-cluster-nodes&quot;&gt;Reboot the system and now join this node to the existing cluster nodes:&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo /usr/sbin/rabbitmqctl status
+sudo /usr/sbin/rabbitmqctl stop_app
+sudo /usr/sbin/rabbitmqctl join_cluster
+sudo /usr/sbin/rabbitmqctl join_cluster
+sudo /usr/sbin/rabbitmqctl join_cluster
+sudo /usr/sbin/rabbitmqctl start_app&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;set-memory-watermark-to-07&quot;&gt;Set memory watermark to 0.7&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo rabbitmqctl set_vm_memory_high_watermark 0.7&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;check-limits-the-os-limits&quot;&gt;Check limits the OS limits&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;ulimit -a
+ulimit -n&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;increase-them-as-desired-edit-etcsysctlconf-add&quot;&gt;Increase them as desired: edit &lt;strong&gt;/etc/sysctl.conf&lt;/strong&gt; add&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;fs.file-max = 100000&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;execute-for-reloading-that-config&quot;&gt;Execute for reloading that config&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sysctl -p&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;edit-limits-at-etcsecuritylimitsconf&quot;&gt;Edit limits at &lt;strong&gt;/etc/security/limits.conf&lt;/strong&gt;&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;soft nproc 65535
+hard nproc 65535
+soft nofile 65535
+hard nofile 65535&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;enable-pam-edit-etcpamdlogin-and-add&quot;&gt;Enable pam: Edit &lt;strong&gt;/etc/pam.d/&lt;/strong&gt;login and add&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;session required pam_limits.so&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;increase-limits-on-conf-edit-etcsystemdsystemrabbitmq-serverservicedlimitsconf-and-add&quot;&gt;Increase limits on .conf: edit &lt;strong&gt;etc/systemd/system/rabbitmq-server.service.d/limits.conf&lt;/strong&gt; and add&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;[Service]
+LimitNOFILE=65535&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;create-new-user-for-be-user-by-interested-party&quot;&gt;Create new user for be user by interested party&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;sudo rabbitmqctl add_user desired-user-name 'desired-password'
+sudo rabbitmqctl set_permissions -p &quot;desired-vhost&quot; &quot;desired-user-name&quot; &quot;.*&quot; &quot;.*&quot; &quot;.*&quot;
+sudo rabbitmqctl set_user_tags desired-user-name desired-role&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;set-up-a-cluster-ensure-that-all-nodes-have-the-same-erlang-cookie-file&quot;&gt;Set up a cluster, ensure that all nodes have the same Erlang cookie file.&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;Starting independent nodes
+rabbit@server1:~$ rabbitmq-server -detached
+rabbit@server2:~$ rabbitmq-server -detached&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;copy-cookie-file&quot;&gt;Copy cookie file&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server1:~$ scp /var/lib/rabbitmq/.erlang.cookie rabbitmq@server2:/var/lib/rabbitmq/.erlang.cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;set-up-proper-permission&quot;&gt;Set up proper permission&lt;/h3&gt;
+&lt;p&gt;Each of the nodes must have correct owner, group and permissions of the file erlang.cookie&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server:~$ sudo chown rabbitmq:rabbitmq /var/lib/rabbitmq/.erlang.cookie
+rabbit@server:~$ sudo chmod 400 /var/lib/rabbitmq/.erlang.cookie&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;verify-individual-status&quot;&gt;Verify individual status&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server1:~$ sudo rabbitmqctl cluster_status
+Cluster status of node 'rabbit@server1' ...
+[{nodes,[{disc,['rabbit@server1']}]},
+{running_nodes,['rabbit@server1']},
+{partitions,[]}]
+...done.
+rabbit@server2:~$ sudo rabbitmqctl cluster_status
+Cluster status of node 'rabbit@server2' ...
+[{nodes,[{disc,['rabbit@server2']}]},
+{running_nodes,['rabbit@server2']},
+{partitions,[]}]
+..done.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;creating-the-cluster&quot;&gt;Creating the cluster&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server2:~$ sudo rabbitmqctl stop_app
+Stopping node rabbit@server2 ...done.
+rabbit@server2:~$ sudo rabbitmqctl join_cluster rabbit@server1
+Clustering node rabbit@server2 with [rabbit@server1] ...done.
+rabbit@server2:~$ sudo rabbitmqctl start_app
+Starting node rabbit@server2 ...done.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;check-status&quot;&gt;Check status&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server1:~$ sudo rabbitmqctl cluster_status
+Cluster status of node rabbit@server1 ...
+[{nodes,[{disc,[rabbit@server1,rabbit@server2]}]},
+{running_nodes,[rabbit@server1]},
+{partitions,[]}]
+...done.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;check-status-of-queues-and-messages&quot;&gt;Check status of queues and messages&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server1:~$ sudo rabbitmqctl list_queues name consumers messages messages_ready messages_unacknowledged
+Listing queues ...
+amq.gen-QpH_mAGLAfcK9RDesq-7Xw 0 0 0 0
+amq.gen-cJHYJpqVVpgdtwSHTzBS2g 0 0 0 0
+amq.gen-rDbxpsjGtK73EMcwBZ3mRA 0 0 0 0
+test_mailer 0 6 6 0
+message_send 0 0 0 0
+test_msg_queue 0 0 0 0
+wont_reveal_queue_name 0 0 0 0
+test_queue_123 0 3515 3515 0
+test_queue_321 2 29 27 2
+...done.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;in-case-deleting-queue-from-cluster-is-needed&quot;&gt;In case deleting queue from cluster is needed&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server1:~$ sudo /usr/local/bin/rabbitmqadmin delete queue name=queuename;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h4 id=&quot;detach-a-node-from-a-cluster&quot;&gt;Detach a node from a cluster&lt;/h4&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server:~$ sudo rabbitmqctl stop_app
+rabbit@server:~$ sudo rabbitmqctl reset
+rabbit@server:~$ sudo rabbitmqctl start_app&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;check-status-1&quot;&gt;Check status&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server:~$ sudo rabbitmqctl cluster_status&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;set-up-mirroring-policy&quot;&gt;Set up mirroring policy&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server:~$ sudo rabbitmqctl set_policy ha-prod &quot;^[A-Z]&quot; \ '{&quot;ha-mode&quot;:&quot;all&quot;,&quot;ha-params&quot;:2,&quot;ha-sync-mode&quot;:&quot;automatic&quot;}'&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;h3 id=&quot;check-it&quot;&gt;Check it&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-shellscript&quot; data-lang=&quot;shellscript&quot;&gt;rabbit@server:~$ sudo rabbitmqctl list_policies;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+</description>
+        <pubDate>Thu, 05 Nov 2020 23:21:23 +0000</pubDate>
+        <link>/blog/clustering-rabbitmq/</link>
+        <guid isPermaLink="true">/blog/clustering-rabbitmq/</guid>
+      </item>
+    
+      <item>
+        <title>GCP Tour</title>
+        <description>&lt;p&gt;When we give a try to GCP, it’s often confusing to undestang what’s going on, especially if never used a cloud platform before.&lt;/p&gt;
+
+&lt;p&gt;With this series, we are going to take a look into the main resources of the platform.&lt;/p&gt;
+
+&lt;p&gt;When we just log in, we receive a dashoard of a project. That project can be switched right at the top bar!&lt;/p&gt;
+
+&lt;p&gt;At the dashboard, you will see the information of the selected project.
+That section has the name, id and number of the project for GCP they are used for interacting with the resources of the google cloud.&lt;/p&gt;
+
+&lt;p&gt;Non-personal accounts usually have organizations containing multiple projects, each project with a diferente set of resources.&lt;/p&gt;
+
+&lt;p&gt;On top left of the screen we have the Navigation Menu, which contains the platform’s services separeted in sections:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Compute: contains machine types that support any type of workload. The different options let you choose how much you want to be involved with operational details and infrastructure.&lt;/li&gt;
+    &lt;li&gt;Storage: contains storage options such as data storage and databases for structured or non structured, relational or non relational data.&lt;/li&gt;
+    &lt;li&gt;Networking: contains services that handles applications traffic and security rules.&lt;/li&gt;
+    &lt;li&gt;Cloud Operations: contains a set resources of cross-cloud logging, monitoring, trace, and other service reliability tools.&lt;/li&gt;
+    &lt;li&gt;Tools: contains resources for developers to manage 
+application pipelines.&lt;/li&gt;
+    &lt;li&gt;Big Data: contains services that allow you to analyze large datasets.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;For example, in the &lt;strong&gt;IAM &amp;amp; admin&lt;/strong&gt; section, we can define who will be able to access each resource, the roles work as like described above:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;roles/viewer: read-only actions.&lt;/li&gt;
+    &lt;li&gt;roles/editor: read-only actions + permissions for actions that modify state, such as changing existing resources.&lt;/li&gt;
+    &lt;li&gt;roles/owner: have complete access to all actions.&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;At the &lt;strong&gt;APIs &amp;amp; Services&lt;/strong&gt; section is where the joy of a develop lies. This section contains all APIs provided by the platform such as Maps SDK, Youtube, AdSense, Google Play Services, Firebase and so on.&lt;/p&gt;
+
+&lt;p&gt;At the &lt;strong&gt;billing&lt;/strong&gt; section, we can find the monetary related information of our projects&lt;/p&gt;
+
+&lt;p&gt;Inside &lt;strong&gt;Operations&lt;/strong&gt; group, we have some very useful resources such as monitoring, metrics, uptimechecks, logging and so on.&lt;/p&gt;
+
+&lt;p&gt;The Google Cloud Platform also provides access to a few partners, currently (at the time that this post was written), Redis, Kafka, Astra, Elasticsearch and MongoDB.&lt;/p&gt;
+
+&lt;p&gt;Also at the top bar, GCP has a Cloud Shell console that allows us to enter commands at a terminal to manage the resources of a project. If we do not desire to use the Cloud Shell at a browser, we can use the CLI.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 27 Aug 2020 23:21:23 +0000</pubDate>
+        <link>/blog/gcp-tour/</link>
+        <guid isPermaLink="true">/blog/gcp-tour/</guid>
+      </item>
+    
+      <item>
+        <title>Password Encryption</title>
+        <description>&lt;p&gt;Let’s talk about &lt;strong&gt;passwords&lt;/strong&gt;. 
+We already know that passwords have levels of strength but… is that enough?&lt;/p&gt;
+
+&lt;p&gt;As developers we must think a little deeper.
+In a data level, we have database encryption, such as row level / table level that can protect our data, but even that can be broken into.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;SQL Injection can retrieve data from a encrypted database since it uses the application to perform the attack&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;There also has a few points to consider about password:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Passwords encrypted with the same key can have identical ciphertext&lt;/li&gt;
+  &lt;li&gt;The encryption key &lt;strong&gt;must&lt;/strong&gt; be stored outside of the database&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;As a matter of attention, attacker also try to use a &lt;em&gt;rainbow table&lt;/em&gt;.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;Rainbow table&lt;/strong&gt; is a technique that consists into a dictionary that contains known passwords and their output hashes, usually for cracking password hashes.&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Series of liked passwords&lt;/li&gt;
+    &lt;li&gt;Series of predictable patterns&lt;/li&gt;
+  &lt;/ul&gt;
+
+  &lt;p&gt;Rainbow table are usually for insecure hashing algorithms&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;MD5&lt;/li&gt;
+    &lt;li&gt;SHA1&lt;/li&gt;
+    &lt;li&gt;Any algorithm up to 8 char&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;A known method to deal with rainbow table is to hash a password with a salt.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;&lt;strong&gt;Salt&lt;/strong&gt; is a randomly generated value that is added (prefix, sufix or both) to the password prior to hashing&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;It is not a secret value and should be stored next to the password as plain text&lt;/li&gt;
+    &lt;li&gt;Each password should be hashed with its own unique salt. When that happends, rainbow table needs to recompute for each password + salt pair which increases the total computation time and decreases password cracking speed&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;There are a few known good ways to hash a password securely, using &lt;strong&gt;KDFs (Key Derivation Function)&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;bcrypt
+    &lt;ul&gt;
+      &lt;li&gt;incorporates a salt to protect against rainbow table attacks and is an adaptive function: over time, the iteration count can be increased to make it slower, so it remains resistant to brute-force search attacks even with increasing computation power&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;PBKDF2
+    &lt;ul&gt;
+      &lt;li&gt;typically used for deriving a cryptographic key from a password&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;scrypt
+    &lt;ul&gt;
+      &lt;li&gt;designed for password storage to be resistant against hardware-assisted attackers by having a tunable memory cost&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;ARGON2
+    &lt;ul&gt;
+      &lt;li&gt;ARGON2D is faster and uses data-depending memory access, which makes it highly resistant against GPU cracking attacks and suitable for applications with no threats from side-channel timing attacks&lt;/li&gt;
+      &lt;li&gt;ARGON2I uses data-independent memory access, which is preferred for password hashing and password-based key derivation, but it is slower as it makes more passes over the memory to protect from tradeoff attacks&lt;/li&gt;
+      &lt;li&gt;ARGON2ID is a hybrid of Argon2i and Argon2d, using a combination of data-depending and data-independent memory accesses, which gives some of Argon2i’s resistance to side-channel cache timing attacks and much of Argon2d’s resistance to GPU cracking attacks&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;KDFs derive bytes suitable for cryptographic operations from passwords or other data using a pseudo-random function (PRF). Different KDFs are suitable for different tasks&lt;/p&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Cryptographic key derivation
+      &lt;ul&gt;
+        &lt;li&gt;Deriving a key suitable for use as input to an encryption algorithm. Typically this means taking a password and running it through an algorithm such as PBKDF2HMAC or HKDF. This process is typically known as key stretching.
+Properly implemented and configured, KDF effectively protects the stored password against attacks.&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/li&gt;
+    &lt;li&gt;Password storage
+      &lt;ul&gt;
+        &lt;li&gt;When storing passwords you want to use an algorithm that is computationally intensive. Legitimate users will only need to compute it once (for example, taking the user’s password, running it through the KDF, then comparing it to the stored value), while attackers will need to do it billions of times. Ideal password storage KDFs will be demanding on both computational and memory resources&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;There is also a client side hashing that is a huge problem. Client side hashing leads to pass-hash attack.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;A keystone cryptography principle, kerckoff principle, says that the cryptosystem should be secure even if all the data about the system is public&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;h2 id=&quot;how-to-save-the-password-securely&quot;&gt;How to save the password securely&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;After the user creates the password, it is transmitted in plaintext over a secure channel (TLS) to the server&lt;/li&gt;
+  &lt;li&gt;Hash using KDF and store in database
+    &lt;ul&gt;
+      &lt;li&gt;User enumeration attack and MITM attack during the data transfer from the application to the database should be considered when creating the authentication functionality&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;how-to-validate-password-properly&quot;&gt;How to validate password properly&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;After the user enters the username and the password, the plain text pair is transmitted over a secure channel to the server&lt;/li&gt;
+  &lt;li&gt;The server hashes the password using KDF and then looks for the username/KDF(password) pair in the database&lt;/li&gt;
+&lt;/ol&gt;
+</description>
+        <pubDate>Thu, 30 Jul 2020 23:21:23 +0000</pubDate>
+        <link>/blog/password-encryption/</link>
+        <guid isPermaLink="true">/blog/password-encryption/</guid>
+      </item>
+    
+      <item>
+        <title>Race Conditions</title>
+        <description>&lt;p&gt;&lt;strong&gt;Race Condition&lt;/strong&gt; is a logical weakness that is extremely hard to detect. The bigger is the piece of code executed by multiple threads, the harder it is to determine where exactly something went wrong. It consists in two or more operations requesting the same resource simultaneously but the operations must be done in a given sequence to be done correctly.&lt;/p&gt;
+
+&lt;p&gt;There are different ways to prevent Race Conditions, and in all of them, the main idea is to let only one thread at a time access the critical piece of code.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Use keywords provided by the programming language (e.g. synchronized)&lt;/li&gt;
+  &lt;li&gt;Use libraries that guarantee atomicity for the desired operations&lt;/li&gt;
+  &lt;li&gt;Use libraries that provide advanced lock implementations (e.g. util.java.concurrency library)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Try to avoid implementing your own lock because it’s not a trivial thing to do. Attempting to fight race conditions, you may end up with a deadlock, i.e. with a condition when two threads are waiting infinitely for each other to release the lock.&lt;/p&gt;
+
+&lt;p&gt;Use proven libraries and make sure not to introduce deadlocks. 
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Monitor.Enter()&lt;/code&gt; acquires a lock on the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;_exchangeLock&lt;/code&gt; object. Note that choosing a lock object is a tradeoff between performance and security. To keep both security and performance on a sufficient level, one should lock only the critical parts of the code.&lt;/p&gt;
+
+&lt;p&gt;You can use try and finally construction to make sure that the lock is released regardless of the result of the code execution.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 23 Jul 2020 21:27:23 +0000</pubDate>
+        <link>/blog/race-conditions/</link>
+        <guid isPermaLink="true">/blog/race-conditions/</guid>
+      </item>
+    
+      <item>
+        <title>Command Injection</title>
+        <description>&lt;p&gt;By using a tool like Netcat utility to read from a network connection using TCP and to output the results of the exploited Command Injection vulnerability to a consolean attacker can checks his CLI window and sees there the content of the &lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;C:\Windows\windows.ini&lt;/code&gt;&lt;/em&gt; file from the server.&lt;/p&gt;
+
+&lt;p&gt;With this vulnerability, &lt;strong&gt;almost any arbitrary operating system command can be executed&lt;/strong&gt; on the server.
+The most effective way to prevent Command Injection vulnerabilities is to avoid calling OS commands from the application code.
+If the execution of OS commands cannot be avoided, don’t use user-supplied input to run them.
+If it is not possible to avoid user-supplied input in calling out to OS commands, then strong input validation must be implemented. It must be based on a allowlist of allowed characters. Don’t use banlists because they tend to be bypassed by a skilled attacker.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;p&gt;Please note that even if you allowlist only alphanumeric symbols, and the attacker fails to break the syntax of the existing command and inject his malicious command, he could still be able to add an argument to the existing command that would change the result of its execution.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;A defense-in-depth approach also recommends to carefully set permissions for the application and its components to prevent OS commands execution.&lt;/p&gt;
+
+&lt;p&gt;A attacker will can also try to trigger the resource exhaustion denial of service.&lt;/p&gt;
+
+&lt;p&gt;Resource exhaustion can affect the following areas of functionality:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Storage:
+    &lt;ul&gt;
+      &lt;li&gt;With the storage depletion attack, server disk space runs out, thus preventing the server from functioning properly.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Connections:
+    &lt;ul&gt;
+      &lt;li&gt;When the attacker simultaneously uploads the big number of files and sends each packet with a considerable delay thus keeping all the connections alive, it may lead to the depletion of the number of connections. Generally, an attacker clogs the communication pipeline of the application and therefore not only prevents further file uploads but causes Denial of Service of the application as a whole.&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Resource exhaustion could lead to the &lt;strong&gt;Denial of Service&lt;/strong&gt; of the whole application or a separate function of that application. It happens when a server consumes 100% of the available resource (CPU, memory, disk space, network bandwidth, etc.) and is not able to process any further requests. File upload could lead to the resource exhaustion when the file storage is misconfigured and necessary security controls are not implemented at the application and OS levels.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Resource exhaustion is not the only bad thing that could happen during the unrestricted file upload. It may also lead to the following attacks depending on the context of how the uploaded file is used:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;The code in uploaded files could be executed. For example, instead of a picture, an attacker could load a Web shell and run OS commands on the server with the Web server privileges.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Existing critical files could be overwritten. In turn, overwriting the access control or configuration files could lead to opening new security breaches in the application.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Sensitive information could get exposed (in case the ACL is misconfigured and allows horizontal or vertical privilege escalation).&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Malicious or unauthorized data could be distributed. For example, when some malicious files are added to the file share and are accessible to application users as is, without file content check.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Given a virtually unlimited amount of users with a virtually unlimited amount of time and bandwidth, any system’s resource can be eventually exhausted, but a defense-in-depth approach can make exhaustion significantly harder. The following security controls should form a multi-layered defense mechanism against storage depletion:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;
+    &lt;p&gt;File size check. Uploading large files could cause a depletion of disk space. The maximum size of the file should be set according to the business requirements and communicated to users.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;File name check. A long filename could lead to unexpected errors or memory issues. If the business logic of the application allows, the names of the uploaded files should be restricted in length, sanitized using a whitelist of allowed characters, or changed to random strings.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Restriction on the amount or total size of uploaded files by a single user. This security control could help against a distributed file upload attack (if the creation of a new user is not trivial and an attacker cannot create thousands of users) and could drastically decrease the risk of disk space exhaustion. Make sure to align the restrictions with the application business requirements and to avoid breaking the user experience of non-malicious users.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;File upload or parsing library should be up to date. If it is not updated regularly, it could contain a vulnerability that leads to denial of service. For example, when a malicious file is loaded using a vulnerable library, it could send the library to an infinite loop of parsing the file.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Resource monitoring. Depletable or finite server resources should be monitored by the application support or operations team: the overall amount of disk space left, the disk space allocated for storing the uploaded files, the number of active and long-lasting connections to the web server, etc. Once the operations team is notified of suspicious activity, they can get involved to manually prevent DoS.&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;
+    &lt;p&gt;Scalable storage, such as via a private cloud. If storage is scalable, it could expand when required, helping both in cases of intentional exhaustion and also during abnormally high activity spikes.&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+</description>
+        <pubDate>Thu, 23 Jul 2020 20:58:23 +0000</pubDate>
+        <link>/blog/command-injection/</link>
+        <guid isPermaLink="true">/blog/command-injection/</guid>
+      </item>
+    
+      <item>
+        <title>SQL Injection</title>
+        <description>&lt;p&gt;&lt;strong&gt;SQL Injection&lt;/strong&gt; is a code injection technique, used to attack applications, in which malicious SQL statements are inserted in client (web/mobile) fields to be executed by the database and retrieve, update or even wipe data.&lt;/p&gt;
+
+&lt;p&gt;Prepared statements (aka parameterized queries) are the best mechanism for preventing SQL injection attacks. Used to abstract SQL statement syntax from input parameters, statement templates are first defined at the application layer, and the parameters are then passed to them.&lt;/p&gt;
+
+&lt;p&gt;Aside from a better protection against SQL injection attacks, prepared statements offer improved code quality from a legibility and maintainability perspective due to the separation of the SQL logic from its inputs.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Second-Order SQL injection&lt;/strong&gt; is a less visible kind of good old SQL injection. Unlike in regular SQL injection, user input doesn’t influence the SQL query directly. Instead, a malicious payload from the user input is, first, saved to the database, and only after that, it is used by the application in the SQL query.&lt;/p&gt;
+
+&lt;p&gt;The typical flow of the Second-Order SQL Injection:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Tainted data is inserted into the database securely using an approach that prevents SQL injections.&lt;/li&gt;
+  &lt;li&gt;Tainted data is then insecurely used as a part of an SQL query leading to the SQL injection.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Prepared statements (aka parameterized queries) are an effective way to prevent all kinds of SQL injection attacks. Used to abstract SQL statement syntax from input parameters. Statement templates are first defined at the application layer, and the parameters are then passed to them.&lt;/p&gt;
+
+&lt;p&gt;Another way to avoid SQL injections is to use ORM. It provides a developer with a way to manipulate the database without writing SQL queries by setting relations between database tables and application objects.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;ORM allows usage of raw SQL queries that are vulnerable to SQL injection if the query is built by concatenating user input with the SQL keywords. Do not concatenate user-supplied data with SQL queries performed by ORM.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Do not banlist or encode potentially dangerous characters like single or double-quotes. This approach is flawed because a banlist can eventually be bypassed.&lt;/p&gt;
+
+&lt;p&gt;All SQL queries must be performed in a secure way regardless of whether or not you’re planning to utilize user input in the query. The data stored in the database should always be treated as untrusted, and defense-in-depth approach should be applied.&lt;/p&gt;
+</description>
+        <pubDate>Thu, 23 Jul 2020 20:21:23 +0000</pubDate>
+        <link>/blog/sql-injection/</link>
+        <guid isPermaLink="true">/blog/sql-injection/</guid>
+      </item>
+    
+      <item>
+        <title>Encoding vs Hashing vs Encryption</title>
+        <description>&lt;p&gt;&lt;strong&gt;Encoding&lt;/strong&gt; is a technique to transform data from one form to another that suits best the system that processes this data.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Can also be used to compress data in transit or storage&lt;/li&gt;
+    &lt;li&gt;Should never be used to keep data confidential&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;Hashing&lt;/strong&gt; is a one-way transformation of arbitrary data into a value of the fixed lenght.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Cryptographic&lt;/li&gt;
+    &lt;li&gt;Noncryptographic -&amp;gt; should never be used for security related&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;&lt;strong&gt;SHA: Chryptographic hashing algorithms&lt;/strong&gt; should have the following laws:&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Preimage resistance -&amp;gt; it’s impossible to derive the original message&lt;/li&gt;
+    &lt;li&gt;Unpredictability -&amp;gt; the output should be impredictable&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Also having quick computation time, hashing is used to ensure the integrity of data with &lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;digital signatures&lt;/code&gt;&lt;/em&gt; and &lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;TLS certificates&lt;/code&gt;&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;strong&gt;Encryption&lt;/strong&gt; is the transformation of data into a format that doesn’t allow to derive the initial meaning from it even if an attacker gets access to it and should be used if data confidentiality is the goal, &lt;strong&gt;it needs to be decrypted using the &lt;em&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cryptographic key&lt;/code&gt;&lt;/em&gt;&lt;/strong&gt;.
+There are two types of algorithms to be used: symmetric and asymmetric, symmetric have better performance than asymmetric.&lt;/p&gt;
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Symmetric use the same key for encrypt and decrypt
+      &lt;ul&gt;
+        &lt;li&gt;widely used for encryption of arbitrary data&lt;/li&gt;
+        &lt;li&gt;can be used by two endpoints who share the same secret&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+
+&lt;blockquote&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Asymmetric use a pair of public and private keys for encrypt/decrypt, encrypting with one key and decrypting with the other.
+      &lt;ul&gt;
+        &lt;li&gt;used for secret key distribution and digital signatures&lt;/li&gt;
+        &lt;li&gt;can be used by an endpoint with multiple clients who trusts the endpoint but don’t want anyone listening in&lt;/li&gt;
+        &lt;li&gt;used for implicit authentication, if anyone can provide a token that the application can decrypt with the public key, then it must have been encrypted with the private key, which can only belong to trusted endpoints (&lt;em&gt;Kerberos for example&lt;/em&gt;)&lt;/li&gt;
+      &lt;/ul&gt;
+    &lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/blockquote&gt;
+</description>
+        <pubDate>Thu, 23 Jul 2020 17:21:23 +0000</pubDate>
+        <link>/blog/encoding-vs-hashing-vs-encryption/</link>
+        <guid isPermaLink="true">/blog/encoding-vs-hashing-vs-encryption/</guid>
+      </item>
+    
+
+    
+      
+        
+      
+    
+      
+    
+      
+        
+          <item>
+            <title></title>
+            <description>&lt;h3&gt;   &lt;/h3&gt;
+
+&lt;div id=&quot;categories&quot;&gt;
+
+&lt;/div&gt;
+
+</description>
+            <link>/blog/tags/</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title></title>
+            <description>&lt;h3&gt;   &lt;/h3&gt;
+
+&lt;div id=&quot;categories&quot;&gt;
+
+  &lt;div class=&quot;category-box&quot;&gt;
+    
+    &lt;div id=&quot;#security&quot;&gt;&lt;/div&gt;
+    &lt;h4 class=&quot;category-head&quot;&gt;&lt;a href=&quot;/blog/categories/security&quot;&gt;security&lt;/a&gt;&lt;/h4&gt;
+    &lt;a name=&quot;security&quot;&gt;&lt;/a&gt;
+     
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/password-encryption/&quot;&gt;Password Encryption&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/race-conditions/&quot;&gt;Race Conditions&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/command-injection/&quot;&gt;Command Injection&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/sql-injection/&quot;&gt;SQL Injection&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/encoding-vs-hashing-vs-encryption/&quot;&gt;Encoding vs Hashing vs Encryption&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+
+  &lt;/div&gt;
+
+  &lt;div class=&quot;category-box&quot;&gt;
+    
+    &lt;div id=&quot;#cloud&quot;&gt;&lt;/div&gt;
+    &lt;h4 class=&quot;category-head&quot;&gt;&lt;a href=&quot;/blog/categories/cloud&quot;&gt;cloud&lt;/a&gt;&lt;/h4&gt;
+    &lt;a name=&quot;cloud&quot;&gt;&lt;/a&gt;
+     
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/gcp-tour/&quot;&gt;GCP Tour&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+
+  &lt;/div&gt;
+
+  &lt;div class=&quot;category-box&quot;&gt;
+    
+    &lt;div id=&quot;#high-availability&quot;&gt;&lt;/div&gt;
+    &lt;h4 class=&quot;category-head&quot;&gt;&lt;a href=&quot;/blog/categories/high-availability&quot;&gt;high-availability&lt;/a&gt;&lt;/h4&gt;
+    &lt;a name=&quot;high-availability&quot;&gt;&lt;/a&gt;
+     
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/load-balancer-with-high-availability/&quot;&gt;Load Balancer with High Availability&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+    &lt;article class=&quot;center&quot;&gt;
+      &lt;h6&gt;&lt;a href=&quot;/blog/clustering-rabbitmq/&quot;&gt;Clustering RabbitMQ&lt;/a&gt;&lt;/h6&gt;
+    &lt;/article&gt;
+
+
+    
+
+  &lt;/div&gt;
+
+&lt;/div&gt;
+
+</description>
+            <link>/blog/categories/</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Cloud</title>
+            <description>&lt;h5&gt; Posts by Category : Cloud &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;27 Aug 2020&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;/blog/gcp-tour/&quot;&gt;GCP Tour&lt;/a&gt;&lt;/li&gt;
+
+&lt;/div&gt;
+</description>
+            <link>/blog/categories/cloud/</link>
+          </item>
+        
+      
+    
+      
+    
+      
+    
+      
+        
+          <item>
+            <title>GoF Patterns</title>
+            <description>&lt;h5&gt; Posts by Tag : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.tags.gof-patterns %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/tags/gof-patterns</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>GoF Patterns</title>
+            <description>&lt;h5&gt; Posts by Category : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.categories.gof-patterns %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/categories/gof-patterns/</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Guides</title>
+            <description>&lt;h5&gt; Posts by Category : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.categories.guides %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/categories/guides/</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Security</title>
+            <description>&lt;h5&gt; Posts by Tag : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.tags.high-availability %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/tags/high-availability</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Security</title>
+            <description>&lt;h5&gt; Posts by Category : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.categories.high-availability %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/categories/high-availability/</link>
+          </item>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <item>
+            <title>Get Started</title>
+            <description>## Getting Started - How to use “devlopr-jekyll” theme
+
+## What's Jekyll ?
+
+If you aren’t familiar with Jekyll yet, you should know that it is a static site generator. It will transform your plain text into static websites and blogs. No more databases, slow loading websites, risk of being hacked…just your content. And not only that, with Jekyll you get free hosting with GitHub Pages! If you are a beginner we recommend you start with [Jekyll’s Docs](https://jekyllrb.com/docs/installation/). Now, if you know how to use Jekyll, let’s move on to using this theme in Jekyll:
+
+### Steps to create your blog using devlopr-jekyll and Host using Github Pages :
+
+&gt;  **Step 1.**  Fork the repo - [click here](https://github.com/sujaykundu777/devlopr-jekyll/fork)
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork1.png){:class=&quot;img-fluid&quot;}
+
+&gt; **Step 2.** Use **your-github-username.github.io** as the new repo  ( Replace your-github-username with yours). Remember if you use the name other than your-github-username.github.io , your blog will be built using gh-pages branch.
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork2.png){:class=&quot;img-fluid&quot;}
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork3.png){:class=&quot;img-fluid&quot;}
+
+&gt; **Step 3.** Clone the new repo locally to make changes :
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork31.png){:class=&quot;img-fluid&quot;}
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork32.png){:class=&quot;img-fluid&quot;}
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork33.png){:class=&quot;img-fluid&quot;}
+
+```bash
+ $ git clone https://github.com/yourusername/yourusername.github.io
+ $ cd yourusername.github.io
+ $ code .
+```
+
+&gt; **Step 4.** Open the files using VSCode and edit _config.yml and edit with your details:
+
+- _config.yml file - replace with your own details
+- _posts - Add your blog posts here
+- _includes - You can replace the contents of the files with your data. (contains widgets)
+- _assets/img - Add all your images here
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork34.png){:class=&quot;img-fluid&quot;}
+
+&gt; **Step 5** - Install the development requirements:
+
+### Set up local development environment
+
+1. [Git](https://git-scm.com/)
+2. [Ruby](https://www.ruby-lang.org/) and [Bundler](https://bundler.io/)
+3. [VSCode](https://code.visualstudio.com/download)
+
+We need ruby and bundler to build our site locally. After installation check if its working:
+
+For ruby :
+
+```bash
+$ ruby -v
+ruby 2.5.1p57 (2018-03-29 revision 63029) [x86_64-linux-gnu]
+```
+For bundler :
+
+```bash
+$ gem install bundler
+$ bundler -v
+Bundler version 2.1.4
+```
+Add jekyll :
+
+```bash
+$ bundle add jekyll
+```
+ This command will add the Jekyll gem to our Gemfile and install it to the ./vendor/bundle/ folder.
+
+You can check the jekyll version
+
+```
+$ bundle exec jekyll -v
+jekyll 4.0.0
+```
+
+&gt; **Step 6.** Install the gem dependencies by running the following command
+
+```bash
+$ bundle update
+$ bundle install
+```
+
+&gt; **Step 7.** Serve the site locally by running the following command below:
+
+```bash
+$ bundle exec jekyll serve --watch
+```
+or you can also serve using :
+
+```bash
+$ jekyll serve
+```
+
+Visit [http://localhost:4000](http://localhost:4000) for development server
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork4.png){:class=&quot;img-fluid&quot;}
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork41.png){:class=&quot;img-fluid&quot;}
+
+### Adding Content
+
+Start populating your blog by adding your .md files in _posts. devlopr-jekyll already has a few examples.
+
+#### YAML Post Example:
+
+```yml
+---
+layout: post
+title: Sample Post
+author: Sujay Kundu
+date: '2019-05-21 14:35:23 +0530'
+category:
+        - jekyll
+summary: This is the summary for the sample post
+thumbnail: sample.png
+---
+
+Hi ! This is sample post.
+
+```
+
+#### YAML Page Example:
+
+```yml
+---
+layout: page
+title: Sample Page
+menus: header
+permalink: /sample-page/
+---
+
+Hi ! This is sample page.
+```
+
+#### Editing stylesheet
+
+You’ll only work with a single file to edit/add theme style: assets/css/main.scss.
+
+### Deploy your Changes
+
+Once happy with your blog changes. Push your changes to master branch.
+
+&gt; **Step 8.** Push Your Local Changes
+
+```bash
+ $ git add .
+ $ git commit -m &quot;my new blog using devlopr-jekyll&quot;
+ $ git push origin master
+```
+
+Visit your Github Repo settings ! Enable master branch as Github Pages Branch :
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork6.png){:class=&quot;img-fluid&quot;}
+
+&gt; **Step 9.** Deploy your Blog :
+
+![Devlopr Jekyll Repo](/assets/img/posts/fork7.png){:class=&quot;img-fluid&quot;}
+
+&gt; Congrats ! On your new shining Blog !
+
+You can visit the blog using [http://your-github-username.github.io](http://your-github-username.github.io).
+
+</description>
+            <link>/get-started/</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Jekyll</title>
+            <description>&lt;h5&gt; Posts by Tag : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.tags.jekyll %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/tags/jekyll</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Jekyll</title>
+            <description>&lt;h5&gt; Posts by Category : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.categories.jekyll %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/categories/jekyll/</link>
+          </item>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+      
+        
+          <item>
+            <title>Security</title>
+            <description>&lt;h5&gt; Posts by Tag : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.tags.security %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/tags/security</link>
+          </item>
+        
+      
+    
+      
+        
+          <item>
+            <title>Security</title>
+            <description>&lt;h5&gt; Posts by Category : {{ page.title }} &lt;/h5&gt;
+
+&lt;div class=&quot;card&quot;&gt;
+{% for post in site.categories.security %}
+ &lt;li class=&quot;category-posts&quot;&gt;&lt;span&gt;{{ post.date | date_to_string }}&lt;/span&gt; &amp;nbsp; &lt;a href=&quot;{{ post.url }}&quot;&gt;{{ post.title }}&lt;/a&gt;&lt;/li&gt;
+{% endfor %}
+&lt;/div&gt;</description>
+            <link>/blog/categories/security/</link>
+          </item>
+        
+      
+    
+      
+    
+      
+        
+          <item>
+            <title>Styleguide</title>
+            <description>&lt;h1 class=&quot;text-center&quot;&gt; devlopr jekyll - Styleguide &lt;/h1&gt;
+
+&lt;hr /&gt;
+
+ &lt;img src=&quot;/assets/img/styleguide.png&quot; class=&quot;img-fluid&quot;&gt;
+
+&lt;p&gt; Lets try the different text styles  &lt;b&gt; Bold &lt;/b&gt; , &lt;strong&gt; Strong &lt;/strong&gt;, &lt;em&gt; Emphasis &lt;/em&gt;, &lt;i&gt; Italic &lt;/i&gt; &lt;/p&gt;
+
+
+&lt;p&gt; Now, lets try different heading styles : &lt;/p&gt;
+
+&lt;h1&gt; Hello in h1 ! &lt;/h1&gt;
+&lt;h2&gt; Hello in h2 ! &lt;/h2&gt;
+&lt;h3&gt; Hello in h3 ! &lt;/h3&gt;
+&lt;h4&gt; Hello in h4 ! &lt;/h4&gt;
+&lt;h5&gt; Hello in h5 ! &lt;/h5&gt;
+&lt;h6&gt; Hello in h6 ! &lt;/h6&gt;
+
+&lt;hr /&gt;
+&lt;p&gt; Unordered List &lt;/p&gt;
+
+&lt;ul&gt;
+&lt;li&gt; List Item 1 &lt;/li&gt;
+&lt;li&gt; List Item 2 &lt;/li&gt;
+&lt;li&gt; List Item 3 &lt;/li&gt;
+&lt;li&gt; List Item 4 &lt;/li&gt;
+&lt;li&gt; List Item 5 &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt; Ordered List &lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt; List Item 1 &lt;/li&gt;
+&lt;li&gt; List Item 2 &lt;/li&gt;
+&lt;li&gt; List Item 3 &lt;/li&gt;
+&lt;li&gt; List Item 4 &lt;/li&gt;
+&lt;li&gt; List Item 5 &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+&lt;p&gt;This is a Block Quote,  It can Expand Multiple Lines &lt;/p&gt;
+
+&lt;/blockquote&gt;
+
+&lt;p&gt;You can use the mark tag to &lt;mark&gt;highlight&lt;/mark&gt; text. &lt;/p&gt;
+
+&lt;p&gt;&lt;del&gt; This line of text is meant to be deleted text &lt;/del&gt; &lt;/p&gt;
+
+&lt;p&gt;&lt;u&gt;This line of text will render as underlined&lt;/u&gt;&lt;/p&gt;
+&lt;p&gt;&lt;small&gt;This line of text is meant to be treated as fine print.&lt;/small&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;This line rendered as bold text.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;This line rendered as italicized text.&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;abbr title=&quot;attribute&quot;&gt;attr&lt;/abbr&gt;&lt;/p&gt;
+&lt;p&gt;&lt;abbr title=&quot;HyperText Markup Language&quot; class=&quot;initialism&quot;&gt;HTML&lt;/abbr&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;div class=&quot;responsive-table&quot;&gt;
+&lt;table&gt;
+      &lt;thead&gt;
+        &lt;tr&gt;
+          &lt;th scope=&quot;col&quot;&gt;#&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+          &lt;th scope=&quot;col&quot;&gt;Heading&lt;/th&gt;
+        &lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+        &lt;tr&gt;
+          &lt;th scope=&quot;row&quot;&gt;1&lt;/th&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;th scope=&quot;row&quot;&gt;2&lt;/th&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;tr&gt;
+          &lt;th scope=&quot;row&quot;&gt;3&lt;/th&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+          &lt;td&gt;Cell&lt;/td&gt;
+        &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;/div&gt;
+
+&lt;hr /&gt;
+
+&lt;h3&gt;YouTube Responsive Embed&lt;/h3&gt;
+
+&lt;iframe width=&quot;560&quot; height=&quot;315&quot; src=&quot;https://www.youtube.com/embed/nuwjUZCSB2Y?rel=0&amp;amp;controls=0&amp;amp;showinfo=0&quot; frameborder=&quot;0&quot; allow=&quot;autoplay; encrypted-media&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;
+
+&lt;hr /&gt;
+
+&lt;h3&gt;Vimeo Responsive Embed&lt;/h3&gt;
+
+&lt;iframe src=&quot;https://player.vimeo.com/video/212114694?title=0&amp;amp;byline=0&amp;amp;portrait=0&quot; width=&quot;640&quot; height=&quot;360&quot; frameborder=&quot;0&quot; webkitallowfullscreen=&quot;&quot; mozallowfullscreen=&quot;&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;ted-responsive-embed&quot;&gt;TED Responsive Embed&lt;/h3&gt;
+
+&lt;iframe src=&quot;https://embed.ted.com/talks/ted_halstead_a_climate_solution_where_all_sides_can_win&quot; width=&quot;640&quot; height=&quot;360&quot; frameborder=&quot;0&quot; scrolling=&quot;no&quot; allowfullscreen=&quot;&quot;&gt;&lt;/iframe&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;twitch-responsive-embed&quot;&gt;Twitch Responsive Embed&lt;/h3&gt;
+
+&lt;iframe src=&quot;https://player.twitch.tv/?autoplay=false&amp;amp;video=v248755437&quot; frameborder=&quot;0&quot; allowfullscreen=&quot;true&quot; scrolling=&quot;no&quot; height=&quot;378&quot; width=&quot;620&quot;&gt;&lt;/iframe&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;soundcloud-embed&quot;&gt;SoundCloud Embed&lt;/h3&gt;
+
+&lt;iframe width=&quot;100%&quot; height=&quot;166&quot; scrolling=&quot;no&quot; frameborder=&quot;no&quot; src=&quot;https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/29738591&amp;amp;color=ff5500&amp;amp;auto_play=false&amp;amp;hide_related=false&amp;amp;show_comments=true&amp;amp;show_user=true&amp;amp;show_reposts=false&quot;&gt;&lt;/iframe&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;codepen-embed&quot;&gt;CodePen Embed&lt;/h3&gt;
+
+&lt;p data-height=&quot;265&quot; data-theme-id=&quot;light&quot; data-slug-hash=&quot;YWvpRo&quot; data-default-tab=&quot;css,result&quot; data-user=&quot;kharrop&quot; data-embed-version=&quot;2&quot; data-pen-title=&quot;Referral Form&quot; class=&quot;codepen&quot;&gt;&lt;/p&gt;
+&lt;script async=&quot;&quot; src=&quot;https://production-assets.codepen.io/assets/embed/ei.js&quot;&gt;&lt;/script&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;syntax-highlighting&quot;&gt;Syntax Highlighting&lt;/h3&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-js&quot; data-lang=&quot;js&quot;&gt;&lt;span class=&quot;s1&quot;&gt;'use strict'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;var&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;markdown&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;require&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s1&quot;&gt;'markdown'&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;).&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;markdown&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;Editor&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;preview&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;update&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kd&quot;&gt;function&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;preview&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;innerHTML&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;markdown&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;toHTML&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;);&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;};&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;input&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;editor&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;k&quot;&gt;this&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;update&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;();&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;You can add inline code just like this, E.g. &lt;code class=&quot;highlighter-rouge&quot;&gt;.code { color: #fff; }&lt;/code&gt;&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-css&quot; data-lang=&quot;css&quot;&gt;&lt;span class=&quot;nt&quot;&gt;pre&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nl&quot;&gt;background-color&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;#f4f4f4&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;nl&quot;&gt;max-width&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;m&quot;&gt;100%&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+  &lt;span class=&quot;nl&quot;&gt;overflow&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nb&quot;&gt;auto&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;github-gist-embed&quot;&gt;GitHub gist Embed&lt;/h3&gt;
+
+&lt;script src=&quot;https://gist.github.com/ahmadajmi/dbb4f713317721668bcbc39420562afc.js&quot;&gt;&lt;/script&gt;
+
+&lt;hr /&gt;
+
+&lt;h3 id=&quot;input-style&quot;&gt;Input Style&lt;/h3&gt;
+
+&lt;p&gt;&lt;input type=&quot;text&quot; placeholder=&quot;I'm an input field!&quot; /&gt;&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;h3&gt; Twitter Embed &lt;/h3&gt;
+
+&lt;blockquote class=&quot;twitter-tweet&quot; data-lang=&quot;en&quot;&gt;&lt;p lang=&quot;en&quot; dir=&quot;ltr&quot;&gt;I just published “Deploying a blog using Jekyll and Github Pages with SSL certificate for Free” &lt;a href=&quot;https://t.co/B3T3IQVU93&quot;&gt;https://t.co/B3T3IQVU93&lt;/a&gt;&lt;/p&gt;&amp;mdash; Sujay Kundu (@SujayKundu777) &lt;a href=&quot;https://twitter.com/SujayKundu777/status/1012601950469160962?ref_src=twsrc%5Etfw&quot;&gt;June 29, 2018&lt;/a&gt;&lt;/blockquote&gt;
+&lt;script async src=&quot;https://platform.twitter.com/widgets.js&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;
+
+&lt;hr /&gt;
+
+&lt;h3&gt; Instagram Embed &lt;/h3&gt;
+
+&lt;blockquote class=&quot;instagram-media&quot; data-instgrm-permalink=&quot;https://www.instagram.com/p/BhFTg6uhNRi/&quot; data-instgrm-version=&quot;9&quot; style=&quot; background:#FFF; border:0; border-radius:3px; box-shadow:0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15); margin: 1px; max-width:658px; min-width:326px; padding:0; width:99.375%; width:-webkit-calc(100% - 2px); width:calc(100% - 2px);&quot;&gt;&lt;div style=&quot;padding:8px;&quot;&gt; &lt;div style=&quot; background:#F8F8F8; line-height:0; margin-top:40px; padding:50.0% 0; text-align:center; width:100%;&quot;&gt; &lt;div style=&quot; background:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACwAAAAsCAMAAAApWqozAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAMUExURczMzPf399fX1+bm5mzY9AMAAADiSURBVDjLvZXbEsMgCES5/P8/t9FuRVCRmU73JWlzosgSIIZURCjo/ad+EQJJB4Hv8BFt+IDpQoCx1wjOSBFhh2XssxEIYn3ulI/6MNReE07UIWJEv8UEOWDS88LY97kqyTliJKKtuYBbruAyVh5wOHiXmpi5we58Ek028czwyuQdLKPG1Bkb4NnM+VeAnfHqn1k4+GPT6uGQcvu2h2OVuIf/gWUFyy8OWEpdyZSa3aVCqpVoVvzZZ2VTnn2wU8qzVjDDetO90GSy9mVLqtgYSy231MxrY6I2gGqjrTY0L8fxCxfCBbhWrsYYAAAAAElFTkSuQmCC); display:block; height:44px; margin:0 auto -44px; position:relative; top:-22px; width:44px;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;p style=&quot; color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; line-height:17px; margin-bottom:0; margin-top:8px; overflow:hidden; padding:8px 0 7px; text-align:center; text-overflow:ellipsis; white-space:nowrap;&quot;&gt;&lt;a href=&quot;https://www.instagram.com/p/BhFTg6uhNRi/&quot; style=&quot; color:#c9c8cd; font-family:Arial,sans-serif; font-size:14px; font-style:normal; font-weight:normal; line-height:17px; text-decoration:none;&quot; target=&quot;_blank&quot;&gt;A post shared by Ahmad Ajmi (@ahmadajme)&lt;/a&gt; on &lt;time style=&quot; font-family:Arial,sans-serif; font-size:14px; line-height:17px;&quot; datetime=&quot;2018-04-02T21:18:58+00:00&quot;&gt;Apr 2, 2018 at 2:18pm PDT&lt;/time&gt;&lt;/p&gt;&lt;/div&gt;&lt;/blockquote&gt; &lt;script async defer src=&quot;//www.instagram.com/embed.js&quot;&gt;&lt;/script&gt;
+
+</description>
+            <link>/styleguide/</link>
+          </item>
+        
+      
+    
+      
+    
+      
+    
+      
+    
+
+  </channel>
+</rss>
